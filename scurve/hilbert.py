@@ -58,6 +58,7 @@ def hilbert_point(dimension, order, h):
             p[j] = utils.setbit(p[j], order, i, b)
         e = e ^ utils.lrot(entry(w), d+1, dimension)
         d = (d + direction(w, dimension) + 1)%dimension
+    #print(p)
     return p
 
 

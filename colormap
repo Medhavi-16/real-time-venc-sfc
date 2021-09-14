@@ -2,7 +2,14 @@
 import os.path, math
 import scurve
 from scurve import progress
-import Image, ImageDraw
+from PIL import Image, ImageDraw
+
+def getTraverseOrder(p1, p2):
+    p =[]
+    for (x, y) in zip(p1, p2):
+       p.append((x[0] & y[0], x[1] & y[1], x[2] & y[2]))
+    return p
+
 
 def sortedPixels(csource, img, quiet):
     img = Image.open(img, "r")
@@ -17,12 +24,19 @@ def sortedPixels(csource, img, quiet):
     for x in range(img.size[0]):
         for y in range(img.size[1]):
             p = img.getpixel((x, y))
+
             decorated.append(
                 (csource.index(p), p)
             )
+            # print(decorated[len(decorated) - 1][1])
             if not x*y%100:
                 prog.tick(x*y)
     decorated.sort()
+    #hilbert curve scrambling 2d-> 1d complete
+
+    #print(decorated)
+    #return getTraverseOrder(csource, img, [i[1] for i in decorated])
+    
     return [i[1] for i in decorated]
 
 
@@ -68,10 +82,27 @@ def main():
     if len(args) != 2:
         parser.error("Please specify output file.")
 
-    csource = scurve.fromSize(options.colorsource, 3, 256**3)
+    
+    im = Image.open(args[0])
+    width, height = im.size
+    resized_im = im.resize((options.size, options.size))
+    resized_im.save("pic_new.jpg")
+
+    #
+    csource = scurve.fromSize(options.colorsource, 2, 256)
     map = scurve.fromSize(options.map, 2, options.size**2)
-    p = sortedPixels(csource, args[0], options.quiet)
-    drawmap(map, p, args[1], options.quiet)
+    p1 = sortedPixels(csource, "pic_new.jpg", options.quiet)
+    drawmap(map, p1, "result1.jpg", options.quiet)
+    csource2 = scurve.fromSize("zigzag", 2, 256)
+    p2 = sortedPixels(csource2, "result1.jpg", options.quiet)
+    print(len(p1),len(p2))
+    p = getTraverseOrder(p1, p2)
+    drawmap(map, p, "result2.jpg", options.quiet)
+
+    output = Image.open("result2.jpg")
+    r_op = output.resize((width, height))
+    r_op.save("final.jpg")
+
     
 
 
