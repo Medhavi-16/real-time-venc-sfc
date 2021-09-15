@@ -28,5 +28,9 @@ def fromOrder(curve, dimension, order):
     """
     return curveMap[curve](dimension, order)
 
+def getOrder(curve, height, width):
+
+    return curveMap[curve].getOrder(height, width)
+
 
 

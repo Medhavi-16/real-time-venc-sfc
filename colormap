@@ -3,12 +3,60 @@ import os.path, math
 import scurve
 from scurve import progress
 from PIL import Image, ImageDraw
+import random
 
-def getTraverseOrder(p1, p2):
-    p =[]
-    for (x, y) in zip(p1, p2):
-       p.append((x[0] & y[0], x[1] & y[1], x[2] & y[2]))
-    return p
+# def getTraverseOrder(p1, p2):
+#     p =[]
+#     for (x, y) in zip(p1, p2):
+#        p.append((x[0] & y[0], x[1] & y[1], x[2] & y[2]))
+#     return p
+
+# def performMod(p):
+#     pixels = []
+#     mod = random.randint(1, 255)
+
+#     for x in p:
+#         pixels.append((x[0] % mod, x[1] % mod, x[2] % mod))
+    
+#     return pixels
+
+def diffusion(p):
+    pixels = []
+
+    for i in range(0, len(p) - 1):
+        if p[i][0] < 100:
+            print(p[i][0] , p[i + 1][0])
+        pixels.append((p[i][0], (p[i][1][0] ^ p[i + 1][1][0], p[i][1][1] ^ p[i + 1][1][1], p[i][1][2] & p[i + 1][1][2])))
+
+    pixels.append(p[len(p) - 1])
+
+    pixels.sort()
+
+
+
+    return pixels
+
+def dediffusion(p):
+    pixels = []
+
+    p.reverse()
+
+    pixels.append(p[0])
+
+    for i in range(1, len(p)):
+        if p[i][0] < 100:
+            print(p[i][0] , pixels[i - 1][0])
+        pixels.append((p[i][0], (p[i][1][0] ^ pixels[i - 1][1][0], p[i][1][1] ^ pixels[i - 1][1][1], p[i][1][2] & pixels[i - 1][1][2])))
+
+    
+
+    pixels.sort()
+
+
+
+    return pixels
+
+
 
 
 def sortedPixels(csource, img, quiet):
@@ -40,6 +88,89 @@ def sortedPixels(csource, img, quiet):
     return [i[1] for i in decorated]
 
 
+
+def diffuse(csource, img, quiet):
+    img = Image.open(img, "r")
+    decorated = []
+    if quiet:
+        prog = progress.Dummy()
+    else:
+        prog = progress.Progress(
+            img.size[0]*img.size[1],
+            "Analysing image"
+        )
+
+    height = img.size[0]
+    width = img.size[1]
+
+    #order = csource.getOrder(height, width)
+
+    # for i in order:
+    #     p = img.getpixel((i[1][0], i[1][1]))
+    #     decorated.append((i[0], p))
+
+    # return [i[1] for i in diffusion(decorated)]
+
+    for x in range(height):
+        for y in range(width):
+            p = img.getpixel((x, y))
+            index = csource.index(p)
+
+            decorated.append(
+                (index, p, x * height + y)
+            )
+            # print(decorated[len(decorated) - 1][1])
+            if not x*y%100:
+                prog.tick(x*y)
+    decorated.sort()
+    
+    return [i[1] for i in diffusion([(i[2],i[1]) for i in decorated])]
+    
+
+        
+
+
+    
+
+
+def dediffuse(csource, img, quiet):
+    img = Image.open(img, "r")
+    decorated = []
+    if quiet:
+        prog = progress.Dummy()
+    else:
+        prog = progress.Progress(
+            img.size[0]*img.size[1],
+            "Analysing image"
+        )
+
+    height = img.size[0]
+    width = img.size[1]
+
+    # order = csource.getOrder(height, width)
+
+    # for i in order:
+    #     p = img.getpixel((i[1][0], i[1][1]))
+    #     decorated.append((i[0], p))
+
+    # return [i[1] for i in dediffusion(decorated)]
+
+    for x in range(height):
+        for y in range(width):
+            p = img.getpixel((x, y))
+            index = csource.index(p)
+
+            decorated.append(
+                (index, p, x * height + y)
+            )
+            # print(decorated[len(decorated) - 1][1])
+            if not x*y%100:
+                prog.tick(x*y)
+    decorated.sort()
+    
+    return [i[1] for i in dediffusion([(i[2],i[1]) for i in decorated])]
+    
+    
 def drawmap(map, pixels, name, quiet):
     c = Image.new("RGB", map.dimensions())
     cd = ImageDraw.Draw(c)
@@ -94,10 +225,14 @@ def main():
     p1 = sortedPixels(csource, "pic_new.jpg", options.quiet)
     drawmap(map, p1, "result1.jpg", options.quiet)
     csource2 = scurve.fromSize("zigzag", 2, 256)
-    p2 = sortedPixels(csource2, "result1.jpg", options.quiet)
-    print(len(p1),len(p2))
-    p = getTraverseOrder(p1, p2)
-    drawmap(map, p, "result2.jpg", options.quiet)
+    p2 = diffuse(csource2, "result1.jpg", options.quiet)
+    #print(len(p1),len(p2))
+    #p = getTraverseOrder(p1, p2)
+
+    drawmap(map, p2, "result2.jpg", options.quiet)
+    p_final = dediffuse(csource2, "result2.jpg", options.quiet)
+    # p = diffusion(p)
+    drawmap(map, p_final, "result3.jpg", options.quiet)
 
     output = Image.open("result2.jpg")
     r_op = output.resize((width, height))

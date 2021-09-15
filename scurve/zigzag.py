@@ -1,5 +1,7 @@
 import math
 
+
+
 class ZigZag:
     """
         An n-dimensional zig-zag curve - it snakes through the n-cube, with
@@ -37,6 +39,8 @@ class ZigZag:
         """
         return [self.size]*self.dimension
 
+     
+
     def index(self, p):
         idx = 0
         flip = False
@@ -51,6 +55,17 @@ class ZigZag:
             if i%2:
                 flip = not flip
         return idx
+
+    def getOrder(self, height, width):
+        pixels =[]
+        for i in range(0, height, 2):
+            for j in range(0, width):
+                pixels.append((i * height + j, (i, j)))
+                pixels.append(((i + 1) * height + j, (i + 1, j)))
+                
+        return pixels
+
+   
 
     def point(self, idx):
         p = []
